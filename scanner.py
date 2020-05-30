@@ -47,6 +47,13 @@ class BaseScanner():
         set_numbers = re.findall(r'([0-9]{7}|[0-9]{4,5})', string)
         set_numbers = list(dict.fromkeys(set_numbers))
         return set_numbers
+    
+    def _format_price(self, price):
+        if ',' in price:
+            price = price.replace(',', '.')
+        price = float(''.join(re.findall('[0-9.]', price)))
+        price = round(price, 2)
+        return price
 
 class ProductScanner(BaseScanner):
     def __init__(self):

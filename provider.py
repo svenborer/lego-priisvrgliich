@@ -57,7 +57,6 @@ class Galaxus(ProductScanner):
 
     def _scan_product(self, product):
         base_url_product = 'https://www.galaxus.ch/en/product/'
-        print(product)
         product_url = "{}{}".format(base_url_product, product['productIdAsString'])
         logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
         title = product['name']
@@ -181,6 +180,44 @@ class Manor(ProductScanner):
         for set_number in set_numbers:
             self.p.add_product(set_number, title, price, 'CHF', product_url, None, self.provider, self.scan_id)
 
+class Velis(ProductScanner):
+    def __init__(self):
+        ProductScanner.__init__(self)
+        self.provider = 'Velis'
+
+    def init_scan(self):
+        base_url = 'https://www.velis-spielwaren.ch/de/LEGO%C2%AE+Shop/?first={}'
+        soup = self._get_soup(base_url, self.headers)
+        index = 0
+        tmp_products = True
+        while tmp_products:
+            url = base_url.format(index)
+            logging.info("[{}] Requesting {} ...".format(self.provider.upper(), url))
+            p_soup = self._get_soup(url, self.headers)
+            tmp_products = p_soup.find_all('div', {'class' : 'artlistitem'}) if p_soup else []
+            logging.info('[{}] Found {} products to scan ...'.format(self.provider.upper(), len(tmp_products)))
+            [self.products.append(product) for product in tmp_products]
+            index += 50
+        logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
+        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+        self.p.deploy_to_database()
+
+    def _scan_product(self, product):
+        href = product.find('div', {'class' : 'artlistimg'}).find('a')['href']
+        product_url = '{}{}'.format('https://www.velis-spielwaren.ch/de/LEGO%C2%AE+Shop/', href)
+        logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
+        title = product.find('div', {'class' : 'artlistinfo'}).find('a').text
+        set_numbers = self._get_set_numbers_from_string(title)
+        price = product.find('div', {'class' : 'artlistpreis'})
+        try:
+            price.span.decompose()
+        except:
+            pass
+        price = self._format_price(price.text)
+        availability = product.find('div', {'class' : 'artlistlager'}).text.strip()
+        for set_number in set_numbers:
+            self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
+
 class Alternate(ProductScanner):
     def __init__(self):
         ProductScanner.__init__(self)
@@ -214,13 +251,6 @@ class Alternate(ProductScanner):
         set_numbers = self._get_set_numbers_from_string(title)
         for set_number in set_numbers:
             self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
-
-    def _format_price(self, price):
-        if ',' in price:
-            price = price.replace(',', '.')
-        price = float(''.join(re.findall('[0-9.]', price)))
-        price = round(price, 2)
-        return price
 
 class Techmania(ProductScanner):
     def __init__(self):
@@ -333,11 +363,13 @@ if __name__ == '__main__':
     # t.init_scan()
     # ms = MeinSpielzeug()
     # ms.init_scan()
-    a = Alternate()
-    a.init_scan()
+    # a = Alternate()
+    # a.init_scan()
     # mi = Migros()
     # mi.init_scan()
     # l = LEGO()
     # l.init_scan()
-    # m = Manor()
-    # m.init_scan()
+    m = Manor()
+    m.init_scan()
+    v = Velis()
+    v.init_scan()

@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from provider import Galaxus, LEGO, Manor, MeinSpielzeug, Techmania, Alternate, Migros
+from provider import Galaxus, LEGO, Manor, MeinSpielzeug, Techmania, Alternate, Migros, Velis
 from queries import Queries
 
 logging.basicConfig(filename='logs/{}_provider.log'.format(datetime.now().strftime('%Y%m%d')), filemode='a', format='%(asctime)s:%(levelname)s:%(funcName)s:%(message)s', level=logging.INFO)
@@ -47,6 +47,12 @@ try:
     ma.init_scan()
 except Exception as e:
     logging.error("[MANOR] Problems scanning, Err: {} ...".format(e))
+
+try:
+    v = Velis()
+    v.init_scan()
+except Exception as e:
+    logging.error("[VELIS] Problems scanning, Err: {} ...".format(e))
 
 q = Queries()
 q._create_tmp_latest_scan_ids()
