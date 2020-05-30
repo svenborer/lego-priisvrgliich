@@ -24,19 +24,6 @@ except Exception as e:
 buy_now_deals = q.get_buy_now_deals(after=timestamp)
 buy_now_deals = [d for d in buy_now_deals if (str(d['set_number']) in wl_set_number or d['subtheme'] in wl_subtheme or d['theme'] in wl_theme) and d['save_in_percentage'] > -10]
 
-# if buy_now_deals:
-#     body = ''
-#     for d in buy_now_deals:
-#         body += 'Title: {}\n'.format(d['title'])
-#         body += 'Theme: {}\n'.format(d['theme'])
-#         body += 'Subtheme: {}\n'.format(d['subtheme'])
-#         body += 'SetNumber: {}\n'.format(d['set_number'])
-#         body += 'Condition: {}\n'.format(d['product_condition'])
-#         body += 'URL: {}\n'.format(d['url'])
-#         body += 'Price: {} / {} / {}%\n'.format(d['price'], d['qty_avg_price'], d['save_in_percentage'])
-#         body += 'Ends in: {}\n\n'.format(d['end_date'])
-#     send_email('Ricardo BuyNow Deals', body)
-
 if buy_now_deals:
     for d in buy_now_deals:
         print('Title: {}'.format(d['title']))

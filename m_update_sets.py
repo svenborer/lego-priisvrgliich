@@ -96,4 +96,6 @@ for year in range(2019, 2022):
                     }
                     db._insert_query(payload)
         else:
-            print(r)
+            logging.error(r)
+
+q._create_tmp_newest_bricklink_prices()
