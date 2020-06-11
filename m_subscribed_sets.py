@@ -1,20 +1,31 @@
 from config import _config
 from queries import Queries
 from database import MySQLDatabase
+from send_mail import send_mail
 
-if __name__ == '__main__':
-    q = Queries()
-    db = MySQLDatabase()
-    for row in q.get_subscriptions():
-        entries = q.get_current_prices_for_set(row['set_number'])
-        low_prices = [r for r in entries if r['price'] < row['price_treshold'] or r['save_in_percentage_lp'] > row['save_lp_treshold']]
-        if low_prices:
-            for d in low_prices:
-                print('SetNumber: {}'.format(d['set_number']))
-                print('URL: {}'.format(d['url']))
-                print('Price: {} CHF (Treshold: {})'.format(d['price'], row['price_treshold']))
-                print('Save LP: {:.2f}% (Treshold: {}%)'.format(d['save_in_percentage_lp'], row['save_lp_treshold']))
-                print('Mail Address: {}'.format(row['email']))
+q = Queries()
+db = MySQLDatabase()
+
+for row in q.get_subscriptions():
+    entries = q.get_current_prices_for_set(row['set_number'])
+    low_prices = [r for r in entries if r['price'] < row['price_treshold']]
+    if low_prices:
+        for d in low_prices:
+            mail_body = """
+Set: {} {}
+Thema: {}/{}
+Stei/Minifigure: {}/{}
+Priis: {} CHF
+UVP: {} CHF
+Treshold: {} CHF
+Rabatt: {}%
+Ahbieter: {}
+URL: {}
+            """
+            body = mail_body.format(d['set_number'], d['name'], d['theme'], d['subtheme'], d['pieces'], d['minifigs'], d['price'], d['ch_price'], row['price_treshold'], round(d['save_in_percentage_lp'], 1), d['provider'], d['url'])
+            subject = 'LEGO-Priisvrgliich|Alarm'
+            receiver = row['email']
+            send_mail(receiver, subject, body)
             payload = {
                 'table_name' : 'tbl_subscriptions',
                 'data' : {

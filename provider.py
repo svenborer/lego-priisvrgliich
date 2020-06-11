@@ -59,12 +59,15 @@ class Galaxus(ProductScanner):
         base_url_product = 'https://www.galaxus.ch/en/product/'
         product_url = "{}{}".format(base_url_product, product['productIdAsString'])
         logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
-        title = product['name']
-        price = product['pricing']['price']['amountIncl']
-        availability = product['availability']['mail']['icon']
-        set_numbers = self._get_set_numbers_from_string(title)
-        for set_number in set_numbers:
-            self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
+        try:
+            title = product['name']
+            price = product['pricing']['price']['amountIncl']
+            availability = product['availability']['mail']['icon']
+            set_numbers = self._get_set_numbers_from_string(title)
+            for set_number in set_numbers:
+                self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
+        except Exception as e:
+            logging.warning("[{}] Error parsing: {}".format(self.provider.upper(), product_url))
 
 class LEGO(ProductScanner):
     def __init__(self):

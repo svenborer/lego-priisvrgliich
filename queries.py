@@ -48,10 +48,7 @@ class Queries():
     def get_subscriptions(self):
         query = """
             SELECT
-                *,
-                IF(price_treshold IS NULL,0,price_treshold) AS price_treshold,
-                IF(save_lp_treshold IS NULL,100,save_lp_treshold) AS save_lp_treshold,
-                IF(save_bl_treshold IS NULL,100,save_bl_treshold) AS save_bl_treshold
+                *
             FROM
                 tbl_subscriptions
             WHERE
@@ -59,7 +56,18 @@ class Queries():
         """
         return self._select_query(query)
 
-    def get_current_prices_for_set(self, set_number):
+    def get_subscriptions_theme(self):
+        query = """
+            SELECT
+                *
+            FROM
+                tbl_subscriptions_theme
+            WHERE
+                notified = 0
+        """
+        return self._select_query(query)
+
+    def get_current_prices_for_set(self, set_number='%'):
         query = """
             SELECT
                 *,
@@ -67,7 +75,8 @@ class Queries():
                     100 -(
                         tbl_provider_scans.price /(tbl_sets.ch_price / 100)
                     )
-                ) AS save_in_percentage_lp
+                ) AS save_in_percentage_lp,
+                tbl_provider_scans.id
             FROM
                 tbl_provider_scans
             LEFT JOIN
@@ -75,9 +84,26 @@ class Queries():
             JOIN
                 tmp_latest_scan_ids USING(scan_id)
             WHERE
-                set_number = %s
+                set_number LIKE %s
         """
         return self._select_query(query, (set_number, ))
+
+    def get_subscriptions_theme_history(self):
+        query = """
+            SELECT
+                *
+            FROM
+                tbl_subscriptions_theme_history
+            JOIN
+                tbl_provider_scans
+            ON
+                tbl_provider_scans.id = tbl_subscriptions_theme_history.deal_id
+            JOIN
+                tbl_subscriptions_theme
+            ON
+                tbl_subscriptions_theme.id = tbl_subscriptions_theme_history.subscriptions_theme_id
+        """
+        return self._select_query(query)
 
     def get_buy_now_deals(self, after=datetime.now()+timedelta(hours=-296)):
         query = """

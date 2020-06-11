@@ -4,7 +4,6 @@ from datetime import datetime
 from config import _config
 from queries import Queries
 from auction import Ricardo
-from send_mail import send_email
 
 wl_set_number = _config['scanner']['wishlist']['set_number']
 wl_theme = _config['scanner']['wishlist']['theme']
