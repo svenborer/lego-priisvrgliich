@@ -14,7 +14,7 @@ for row in q.get_subscriptions_theme():
     low_prices_sorted = reversed(sorted(low_prices, key=lambda k: k['save_in_percentage_lp']))
     if low_prices_sorted:
         for d in low_prices_sorted:
-            sent = [h for h in subscription_history if row['id'] == h['subscriptions_theme_id'] and d['id'] == h['deal_id'] and d['url'] == h['url']]
+            sent = [h for h in subscription_history if row['id'] == h['subscriptions_theme_id'] and d['url'] == h['url'] and d['price'] >= h['price']]
             if not sent:
                 mail_body = """
 Set: {} {}
@@ -28,8 +28,8 @@ URL: {}
                 """
                 body = mail_body.format(d['set_number'], d['name'], d['theme'], d['subtheme'], d['pieces'], d['minifigs'], d['price'], d['ch_price'], round(d['save_in_percentage_lp'], 1), d['provider'], d['url'])
                 subject = 'LEGO-Priisvrgliich|Theme|Alarm'
-                receiver = row['email']
-                send_mail(receiver, subject, body)
+                to = row['email']
+                send_mail(to, subject, body)
                 payload = {
                     'table_name' : 'tbl_subscriptions_theme_history',
                     'data' : {
