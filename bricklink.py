@@ -166,6 +166,7 @@ class Bricklink():
         return True
 
 if __name__=='__main__':
+    logging.basicConfig(format='%(asctime)s:%(levelname)s:%(funcName)s:%(message)s', level=logging.DEBUG)
     for set_number in ['75918', 70423, 2704]:
         bl = Bricklink(set_number)
         print(bl.result)

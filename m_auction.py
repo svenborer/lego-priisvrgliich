@@ -4,6 +4,7 @@ from datetime import datetime
 from config import _config
 from queries import Queries
 from auction import Ricardo
+from send_mail import send_mail
 
 wl_set_number = _config['scanner']['wishlist']['set_number']
 wl_theme = _config['scanner']['wishlist']['theme']
@@ -21,14 +22,23 @@ except Exception as e:
     logging.error("[RICARDO] Problems scanning, Err: {} ...".format(e))
 
 buy_now_deals = q.get_buy_now_deals(after=timestamp)
-buy_now_deals = [d for d in buy_now_deals if (str(d['set_number']) in wl_set_number or d['subtheme'] in wl_subtheme or d['theme'] in wl_theme) and d['save_in_percentage'] > -10]
+buy_now_deals_filtered = [d for d in buy_now_deals if (str(d['set_number']) in wl_set_number or d['subtheme'] in wl_subtheme or d['theme'] in wl_theme) and d['save_in_percentage'] > -10]
+active_subscriptions = q.get_subscriptions()
+
+if buy_now_deals_filtered:
+    for d in buy_now_deals_filtered:
+        mail_body = "Titel: {}\nSet: {}\nThema: {}/{}\nCondition: {}\nURL: {}\nPriis: {} CHF\nUVP: {} CHF\nBL: {} CHF / {}%\nAendet am: {}"
+        body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], d['price'], round(d['ch_price'], 2), round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
+        subject = '[LEGO-PVG-R-WL] {}|{}'.format(d['set_number'], d['title'])
+        to = 'borer.sven@gmail.com'
+        send_mail(to, subject, body)
 
 if buy_now_deals:
     for d in buy_now_deals:
-        print('Title: {}'.format(d['title']))
-        print('Theme: {}/{}'.format(d['theme'], d['subtheme']))
-        print('SetNumber: {}'.format(d['set_number']))
-        print('Condition: {}'.format(d['product_condition']))
-        print('URL: {}'.format(d['url']))
-        print('Price: {} / {} / {} %'.format(d['price'], d['qty_avg_price'], d['save_in_percentage']))
-        print('Ends in: {}\n'.format(d['end_date']))
+        subscriptions = [_ for _ in active_subscriptions if _['set_number'] == d['set_number'] and d['product_condition'] == 'new' and d['price'] < _['price_treshold']]
+        for s in subscriptions:
+            mail_body = "Titel: {}\nSet: {}\nThema: {}/{}\nCondition: {}\nURL: {}\nPriis: {} CHF\nUVP: {} CHF\nBL: {} CHF / {}%\nAendet am: {}"
+            body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], round(d['price'], 2), d['ch_price'], round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
+            subject = '[LEGO-PVG-R-S] {}|{}'.format(d['set_number'], d['title'])
+            to = s['email']
+            send_mail(to, subject, body)

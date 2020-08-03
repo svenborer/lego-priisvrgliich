@@ -66,7 +66,7 @@ class Galaxus(ProductScanner):
             set_numbers = self._get_set_numbers_from_string(title)
             for set_number in set_numbers:
                 self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
-        except Exception as e:
+        except:
             logging.warning("[{}] Error parsing: {}".format(self.provider.upper(), product_url))
 
 class LEGO(ProductScanner):
@@ -102,9 +102,10 @@ class LEGO(ProductScanner):
             }
         '''
         request = self._get_json(url=url, data=jsonPayload.replace('REPLACE_HERE', '/themes'), headers=headers)
-        themes = request['data']['contentPage']['sections'][1]['children']
+        themes = request['data']['contentPage']['sections'][0]['children']
+        print(themes)
         for theme in themes:
-            theme_url = theme['url'].replace('/about', '/products')
+            theme_url = theme['url'].replace('/about', '/products').replace('/campaigns', '/themes').replace('https://www.lego.com', '').replace('supermario', 'super-mario')
             logging.info("[{}] Requesting {} ...".format(self.provider.upper(), theme_url))
             theme_request = self._get_json(url=url, data=jsonPayload.replace('REPLACE_HERE', theme_url), headers=headers)
             try:
@@ -129,12 +130,9 @@ class LEGO(ProductScanner):
         list_price = variantBase['listPrice']['centAmount']/100
         self._update_list_price(set_number, list_price)
         availability = variantBase['attributes']['availabilityStatus']
-        logging.info("[{}] Requesting bricklink data for set number {} ...".format(self.provider.upper(), set_number))
-        Bricklink(set_number)
         self.p.add_product(set_number, title, price, currency, product_url, availability, self.provider, self.scan_id)
 
     def _update_list_price(self, set_number, list_price):
-        payload = {'data'}
         to_update = self.q._select_query("SELECT id FROM tbl_sets WHERE set_number = %s AND ch_price IS NULL", (set_number, ))
         ids = [s['id'] for s in to_update]
         if ids:
@@ -190,7 +188,6 @@ class Velis(ProductScanner):
 
     def init_scan(self):
         base_url = 'https://www.velis-spielwaren.ch/de/LEGO%C2%AE+Shop/?first={}'
-        soup = self._get_soup(base_url, self.headers)
         index = 0
         tmp_products = True
         while tmp_products:
@@ -227,7 +224,7 @@ class Alternate(ProductScanner):
         self.provider = 'Alternate'
 
     def init_scan(self):
-        base_url = 'https://www.alternate.ch/listing_ajax.xhtml?af=true&listing=0&filterManufacturer=LEGO&q=LEGO&page={}'
+        base_url = 'https://www.alternate.ch/listing_ajax.xhtml?af=true&listing=0&q=LEGO&page={}'
         index = 1
         while True:
             url = base_url.format(index)
@@ -360,19 +357,5 @@ class Migros(ProductScanner):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(funcName)s:%(message)s', level=logging.DEBUG)
-    # g = Galaxus()
-    # g.init_scan()
-    # t = Techmania()
-    # t.init_scan()
-    # ms = MeinSpielzeug()
-    # ms.init_scan()
-    # a = Alternate()
-    # a.init_scan()
-    # mi = Migros()
-    # mi.init_scan()
-    # l = LEGO()
-    # l.init_scan()
-    m = Manor()
-    m.init_scan()
-    v = Velis()
-    v.init_scan()
+    p = LEGO()
+    p.init_scan()

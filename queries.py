@@ -111,6 +111,7 @@ class Queries():
                 tbl_sets.subtheme,
                 tbl_sets.theme,
                 tbl_sets.year,
+                tbl_sets.ch_price,
                 tbl_auction_scans.url,
                 tbl_auction_scans.set_number,
                 tbl_auction_scans.product_condition,
@@ -176,19 +177,16 @@ class Queries():
         """
         return self._select_query(query, (limit, ))
     
-    def get_sets(self, id='%', set_number='%', theme='%', subtheme='%'):
+    def get_sets(self, id='%'):
         query = """
             SELECT
                 *
             FROM
                 tbl_sets
             WHERE
-                id LIKE %s AND
-                set_number LIKE %s AND
-                theme LIKE %s AND
-                subtheme LIKE %s
+                id = %s
             """
-        return self._select_query(query, (id, set_number, theme, subtheme))
+        return self._select_query(query, (id, ))
 
     def _create_tmp_newest_bricklink_prices(self):
         self._execute_query("DELETE FROM tmp_newest_bricklink_prices")

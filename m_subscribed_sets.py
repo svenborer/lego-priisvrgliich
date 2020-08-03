@@ -23,7 +23,7 @@ Ahbieter: {}
 URL: {}
             """
             body = mail_body.format(d['set_number'], d['name'], d['theme'], d['subtheme'], d['pieces'], d['minifigs'], d['price'], d['ch_price'], row['price_treshold'], round(d['save_in_percentage_lp'], 1), d['provider'], d['url'])
-            subject = 'LEGO-Priisvrgliich|Alarm'
+            subject = '[LEGO-PVG-P-S] {}|{}'.format(d['set_number'], d['name'])
             to = row['email']
             send_mail(to, subject, body)
             payload = {
