@@ -16,18 +16,9 @@ for row in q.get_subscriptions_theme():
         for d in low_prices_sorted:
             sent = [h for h in subscription_history if row['id'] == h['subscriptions_theme_id'] and d['url'] == h['url'] and d['price'] >= h['price']]
             if not sent:
-                mail_body = """
-Set: {} {}
-Thema: {}/{}
-Stei/Minifigure: {}/{}
-Priis: {} CHF
-UVP: {} CHF
-Rabatt: {}%
-Ahbieter: {}
-URL: {}
-                """
+                mail_body = "Set: https://svenborer.ch/lego-priisvrgliich/set/{} {}\nThema: {}/{}\nStei/Minifigure: {}/{}\nPriis: {} CHF\nUVP: {} CHF\nRabatt: {}%\nAhbieter: {}\nURL: {}"
                 body = mail_body.format(d['set_number'], d['name'], d['theme'], d['subtheme'], d['pieces'], d['minifigs'], d['price'], d['ch_price'], round(d['save_in_percentage_lp'], 1), d['provider'], d['url'])
-                subject = '[LEGO-PVG-P-T] {}|{}'.format(d['set_number'], d['name'])
+                subject = '[L-PVG-P-T] {}|{}'.format(d['set_number'], d['name'])
                 to = row['email']
                 send_mail(to, subject, body)
                 payload = {

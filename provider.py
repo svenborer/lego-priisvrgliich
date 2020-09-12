@@ -2,12 +2,14 @@ import re
 import logging
 import random
 import requests
+from bs4 import BeautifulSoup
 
 from config import _config
 from scanner import ProductScanner
 from queries import Queries
 from database import MySQLDatabase
 from bricklink import Bricklink
+from send_mail import send_mail
 
 class Galaxus(ProductScanner):
     def __init__(self):
@@ -52,8 +54,14 @@ class Galaxus(ProductScanner):
             logging.info('[{}] Found {} products to scan ...'.format(self.provider.upper(), len(tmp_products)))
             [self.products.append(product) for product in tmp_products]
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product):
         base_url_product = 'https://www.galaxus.ch/en/product/'
@@ -103,7 +111,7 @@ class LEGO(ProductScanner):
         '''
         request = self._get_json(url=url, data=jsonPayload.replace('REPLACE_HERE', '/themes'), headers=headers)
         themes = request['data']['contentPage']['sections'][0]['children']
-        print(themes)
+        themes.append({'url' : '/categories/seasonal'})
         for theme in themes:
             theme_url = theme['url'].replace('/about', '/products').replace('/campaigns', '/themes').replace('https://www.lego.com', '').replace('supermario', 'super-mario')
             logging.info("[{}] Requesting {} ...".format(self.provider.upper(), theme_url))
@@ -115,9 +123,15 @@ class LEGO(ProductScanner):
             except:
                 logging.warning('[{}] Couldnt parse theme {} ...'.format(self.provider.upper(), theme_url))
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
-        self.db.close()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+            self.db.close()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product):
         set_number = product['productCode']
@@ -149,6 +163,46 @@ class LEGO(ProductScanner):
                 logging.info('[{}] Updating list price ({}) for set number {} ...'.format(self.provider.upper(), list_price, set_number))
                 self.db._update_query(update_data)
 
+class Smyth(ProductScanner):
+    def __init__(self):
+        ProductScanner.__init__(self)
+        self.provider = 'Smyth'
+
+    def init_scan(self):
+        base_url = 'https://www.smythstoys.com/ch/de-ch/ch/de-ch/spielzeug/lego/c/SM100114/load-more?q=:bestsellerRating:productVisible:true&page={}'
+        has_more = True
+        page = 0
+        while has_more:
+            url = base_url.format(page)
+            logging.info("[{}] Requesting {} ...".format(self.provider.upper(), url))
+            soup = self._get_json(url, self.headers, request_type='get')
+            has_more = soup['hasMoreResults']
+            html_soup = BeautifulSoup(soup['htmlContent'], "html.parser")
+            tmp_products = html_soup.find_all('div', {'class' : 'panel product-panel st-p-relative item-panel'}) if soup else []
+            logging.info('[{}] Found {} products to scan ...'.format(self.provider.upper(), len(tmp_products)))
+            [self.products.append(product) for product in tmp_products]
+            page = page + 1
+        logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
+
+    def _scan_product(self, product):
+        href = product.find('a', {'class' : 'trackProduct'})['href']
+        product_url = '{}{}'.format('https://www.smythstoys.com', href)
+        logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
+        title = product.find('h2', {'class' : 'prodName trackProduct'}).text
+        set_numbers = self._get_set_numbers_from_string(title)
+        price = product.find('div', {'class' : 'price'})['content']
+        for set_number in set_numbers:
+            if float(price) > 0:
+                self.p.add_product(set_number, title, price, 'CHF', product_url, None, self.provider, self.scan_id)
+
 class Manor(ProductScanner):
     def __init__(self):
         ProductScanner.__init__(self)
@@ -168,8 +222,14 @@ class Manor(ProductScanner):
             logging.info('[{}] Found {} products to scan ...'.format(self.provider.upper(), len(tmp_products)))
             [self.products.append(product) for product in tmp_products]
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product):
         href = product.find('a', {'class' : 'o-producttile__link'})['href']
@@ -179,7 +239,8 @@ class Manor(ProductScanner):
         set_numbers = self._get_set_numbers_from_string(title)
         price = product.find('span', {'class' : 'js-productprice'}).text.strip()
         for set_number in set_numbers:
-            self.p.add_product(set_number, title, price, 'CHF', product_url, None, self.provider, self.scan_id)
+            if float(price) > 0:
+                self.p.add_product(set_number, title, price, 'CHF', product_url, None, self.provider, self.scan_id)
 
 class Velis(ProductScanner):
     def __init__(self):
@@ -199,8 +260,14 @@ class Velis(ProductScanner):
             [self.products.append(product) for product in tmp_products]
             index += 50
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product):
         href = product.find('div', {'class' : 'artlistimg'}).find('a')['href']
@@ -237,15 +304,21 @@ class Alternate(ProductScanner):
             [self.products.append(product) for product in tmp_products]
             index += 1
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product):
         product_url = product['href']
         logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
         title = product.find('div', {'class' : 'product-name font-weight-bold'}).text
         price_tag = product.find('span', {'class' : 'price'}).text
-        price = self._format_price(price_tag)
+        price = self._format_price(price_tag.replace('.', ''))
         availability = product.find('div', {'class' : 'col-auto delivery-info text-right'}).find('span').text
         availability = re.sub(r' [0-9]+', '', availability)
         set_numbers = self._get_set_numbers_from_string(title)
@@ -271,8 +344,14 @@ class Techmania(ProductScanner):
             [self.products.append(product) for product in tmp_product_urls]
             pageIndex += 1
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product_url):
         logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
@@ -301,8 +380,14 @@ class MeinSpielzeug(ProductScanner):
             logging.info('[{}] Found {} products to scan ...'.format(self.provider.upper(), len(tmp_products)))
             [self.products.append(product) for product in tmp_products]
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
 
     def _scan_product(self, product):
         href = product.find('a')['href']
@@ -342,8 +427,14 @@ class Migros(ProductScanner):
             logging.info('[{}] Found {} products to scan ...'.format(self.provider.upper(), len(tmp_products)))
             [self.products.append(product) for product in tmp_products]
         logging.info('[{}] Found a total of {} products ...'.format(self.provider.upper(), len(self.products)))
-        [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
-        self.p.deploy_to_database()
+        if len(self.products) > 0:
+            [self._scan_product(product) for product in self.products[:_config['scanner']['limit']]]
+            self.p.deploy_to_database()
+        else:
+            body = "Seht us als waer dr Scanner fuer {} dunde ...".format(self.provider)
+            subject = '[L-PVG] {}|Scanning Error ...'.format(self.provider)
+            to = _config['notification']['email']
+            send_mail(to, subject, body)
     
     def _scan_product(self, product):
         product_url = '{}{}'.format('https://www.melectronics.ch', product['url'])
@@ -357,5 +448,5 @@ class Migros(ProductScanner):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(funcName)s:%(message)s', level=logging.DEBUG)
-    p = LEGO()
+    p = Smyth()
     p.init_scan()

@@ -21,15 +21,16 @@ try:
 except Exception as e:
     logging.error("[RICARDO] Problems scanning, Err: {} ...".format(e))
 
+mail_body = "Titel: {}\nSet: {}\nThema: {}/{}\nCondition: {}\nURL: {}\nPriis: {} CHF\nTreshold: {} CHF\nUVP: {} CHF\nBL: {} CHF / {}%\nAendet am: {}"
+
 buy_now_deals = q.get_buy_now_deals(after=timestamp)
-buy_now_deals_filtered = [d for d in buy_now_deals if (str(d['set_number']) in wl_set_number or d['subtheme'] in wl_subtheme or d['theme'] in wl_theme) and d['save_in_percentage'] > -10]
+buy_now_deals_filtered = [_ for _ in buy_now_deals if (_['set_number'] in wl_set_number or _['subtheme'] in wl_subtheme or _['theme'] in wl_theme) and _['save_in_percentage'] > -10]
 active_subscriptions = q.get_subscriptions()
 
 if buy_now_deals_filtered:
     for d in buy_now_deals_filtered:
-        mail_body = "Titel: {}\nSet: {}\nThema: {}/{}\nCondition: {}\nURL: {}\nPriis: {} CHF\nUVP: {} CHF\nBL: {} CHF / {}%\nAendet am: {}"
-        body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], d['price'], round(d['ch_price'], 2), round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
-        subject = '[LEGO-PVG-R-WL] {}|{}'.format(d['set_number'], d['title'])
+        body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], d['price'], 'N/A', d['ch_price'], round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
+        subject = '[L-PVG-A-SK] {}|{}'.format(d['set_number'], d['title'])
         to = 'borer.sven@gmail.com'
         send_mail(to, subject, body)
 
@@ -37,8 +38,7 @@ if buy_now_deals:
     for d in buy_now_deals:
         subscriptions = [_ for _ in active_subscriptions if _['set_number'] == d['set_number'] and d['product_condition'] == 'new' and d['price'] < _['price_treshold']]
         for s in subscriptions:
-            mail_body = "Titel: {}\nSet: {}\nThema: {}/{}\nCondition: {}\nURL: {}\nPriis: {} CHF\nUVP: {} CHF\nBL: {} CHF / {}%\nAendet am: {}"
-            body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], round(d['price'], 2), d['ch_price'], round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
-            subject = '[LEGO-PVG-R-S] {}|{}'.format(d['set_number'], d['title'])
+            body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], round(d['price'], 2), s['price_treshold'], d['ch_price'], round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
+            subject = '[L-PVG-A-SK] {}|{}'.format(d['set_number'], d['title'])
             to = s['email']
             send_mail(to, subject, body)

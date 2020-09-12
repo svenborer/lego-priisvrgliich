@@ -146,7 +146,33 @@ class Queries():
             DESC
         """
         return self._select_query(query, (after, ))
-    
+
+    def get_auction_deals(self):
+        query = """
+            SELECT
+                tbl_sets.subtheme,
+                tbl_sets.theme,
+                tbl_sets.year,
+                tbl_sets.ch_price,
+                tbl_auction_scans.url,
+                tbl_auction_scans.set_number,
+                tbl_auction_scans.product_condition,
+                tbl_auction_scans.title,
+                tbl_auction_scans.end_date,
+                (
+                    tbl_auction_scans.auction_price + tbl_auction_scans.shipping_price
+                ) AS price,
+                tbl_auction_scans.scan_date
+            FROM
+                tbl_auction_scans
+            JOIN tbl_sets USING(set_number)
+            WHERE
+                tbl_auction_scans.has_auction = 1 AND
+                tbl_auction_scans.end_date < DATE_ADD(NOW(), INTERVAL 12 HOUR) AND
+                tbl_auction_scans.end_date > NOW()
+        """
+        return self._select_query(query)
+
     def get_bricklink_price_for_set(self, set_number, condition='new', age=999):
         query = """
             SELECT
@@ -169,8 +195,9 @@ class Queries():
                 *
             FROM
                 tbl_sets
+            JOIN tmp_newest_bricklink_prices USING(set_number)
             WHERE
-                set_number != 0
+                DATEDIFF(NOW(), scan_date) > 10
             ORDER BY
                 RAND()
             LIMIT %s

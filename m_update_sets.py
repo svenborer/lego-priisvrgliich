@@ -10,7 +10,7 @@ logging.basicConfig(filename='logs/{}_update_sets.log'.format(datetime.now().str
 db = MySQLDatabase()
 q = Queries()
 
-for year in range(2019, 2022):
+for year in range((datetime.now().year)-3, datetime.now().year):
     y = str(year)
     for page in range(1, 10):
         p = str(page)
@@ -19,6 +19,7 @@ for year in range(2019, 2022):
         if r['status'] == 'noRecords':
             break
         if r['status'] == 'success':
+            print(r['sets'])
             for set in r['sets']:
                 id = set['setID']
                 set_number = set['number']
@@ -47,7 +48,13 @@ for year in range(2019, 2022):
                     if set['LEGOCom']['DE'].get('retailPrice'):
                         eu_price = set['LEGOCom']['DE']['retailPrice']
                 image_url = set['image']['imageURL'] if set['image'].get('imageURL') else None
-                data = (id, set_number, variant, theme, subtheme, year, name, minifigs, pieces, uk_price, us_price, ca_price, eu_price, ch_price, image_url)
+                owned_by = None
+                wanted_by = None
+                if set.get('collections') and set['collections'].get('ownedBy'):
+                    owned_by = set['collections']['ownedBy']
+                if set.get('collections') and set['collections'].get('wantedBy'):
+                    wanted_by = set['collections']['wantedBy']
+                data = (id, set_number, variant, theme, subtheme, year, name, minifigs, pieces, uk_price, us_price, ca_price, eu_price, ch_price, image_url, wanted_by, owned_by)
                 if q.get_sets(id=id):
                     logging.info("[UPDATESET] {} has been found in database, updating ...".format(id))
                     update_data = {
@@ -65,7 +72,9 @@ for year in range(2019, 2022):
                             'us_price' : us_price,
                             'ca_price' : ca_price,
                             'eu_price' : eu_price,
-                            'image_url' : image_url
+                            'image_url' : image_url,
+                            'owned_by' : owned_by,
+                            'wanted_by' : wanted_by
                         },
                         'condition' : {
                             'id' : id
@@ -90,8 +99,10 @@ for year in range(2019, 2022):
                             'us_price' : us_price,
                             'ca_price' : ca_price,
                             'eu_price' : eu_price,
-                            'ch_price' : None,
-                            'image_url' : image_url
+                            'ch_price' : ch_price,
+                            'image_url' : image_url,
+                            'owned_by' : owned_by,
+                            'wanted_by' : wanted_by
                         }
                     }
                     db._insert_query(payload)
