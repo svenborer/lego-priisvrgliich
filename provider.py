@@ -33,11 +33,12 @@ class Galaxus(ProductScanner):
                         "limit":50,
                         "sort":"BESTSELLER",
                         "siteId":null,
-                        "sectorId":5
+                        "sectorId":5,
+                        "withDefaultOffer":false
                     },
                     "extensions":{
                         "persistedQuery":{
-                            "version":1,"sha256Hash":"cd2107b20ecd5954254487b28679b7a12d0a42139e5ea1a244fcb281539a6a48"
+                            "version":1,"sha256Hash":"822e1996a25a7fd6d1d31c854a08f2707fad924139eca0342ffd2c537d3bebc5"
                         }
                     }
                 }
@@ -48,6 +49,7 @@ class Galaxus(ProductScanner):
         while has_more:
             logging.info("[{}] Requesting {} ...".format(self.provider.upper(), base_url))
             json = self._get_json(url=base_url, headers=headers, data=payload.replace('REPLACE_HERE', str(offset)))
+            print(json[0])
             has_more = json[0]['data']['productType']['filterProductsV4']['products']['hasMore']
             tmp_products = json[0]['data']['productType']['filterProductsV4']['products']['results']
             offset += 50
@@ -287,12 +289,12 @@ class Velis(ProductScanner):
 
 class Alternate(ProductScanner):
     def __init__(self):
-        ProductScanner.__init__(self)
+        ProductScanner.__init__(self)e
         self.provider = 'Alternate'
 
     def init_scan(self):
         base_url = 'https://www.alternate.ch/listing_ajax.xhtml?af=true&listing=0&q=LEGO&page={}'
-        index = 1
+        index = 2
         while True:
             url = base_url.format(index)
             logging.info("[{}] Requesting {} ...".format(self.provider.upper(), url))
@@ -441,12 +443,13 @@ class Migros(ProductScanner):
         logging.info("[{}] Scanning product {} ...".format(self.provider.upper(), product_url))
         title = product['name']
         set_numbers = self._get_set_numbers_from_string(title)
-        price = product['price']['value']
-        availability = 'AVAILABLE' if product['orderable'] else 'UNAVAILABLE'
-        for set_number in set_numbers:
-            self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
+        if product.get('price'):
+            price = product['price']['value']
+            availability = 'AVAILABLE' if product['orderable'] else 'UNAVAILABLE'
+            for set_number in set_numbers:
+                self.p.add_product(set_number, title, price, 'CHF', product_url, availability, self.provider, self.scan_id)
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(funcName)s:%(message)s', level=logging.DEBUG)
-    p = Smyth()
+    p = Migros()
     p.init_scan()

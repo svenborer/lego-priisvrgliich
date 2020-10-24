@@ -194,10 +194,11 @@ class Queries():
             SELECT
                 *
             FROM
-                tbl_sets
-            JOIN tmp_newest_bricklink_prices USING(set_number)
+                tmp_newest_bricklink_prices
+            RIGHT JOIN tbl_sets USING(set_number)
             WHERE
-                DATEDIFF(NOW(), scan_date) > 10
+            	(DATEDIFF(NOW(), scan_date) > 10 OR
+                scan_date IS NULL) AND set_number != 0
             ORDER BY
                 RAND()
             LIMIT %s
@@ -236,9 +237,9 @@ class Queries():
         self._execute_query(query)
     
     def _create_tmp_latest_scan_ids(self):
-        self._execute_query("DELETE FROM tmp_latest_scan_ids")
+        self._execute_query("DELETE FROM tmp_latest_scan_ids_tmp")
         query = """
-        INSERT INTO tmp_latest_scan_ids (scan_id)
+        INSERT INTO tmp_latest_scan_ids_tmp (scan_id)
             SELECT
                 scan_id
             FROM (
@@ -256,6 +257,8 @@ class Queries():
                 provider
         """
         self._execute_query(query)
+        self._execute_query("DELETE FROM tmp_latest_scan_ids")
+        self._execute_query("INSERT INTO tmp_latest_scan_ids (scan_id) SELECT scan_id FROM tmp_latest_scan_ids_tmp")
 
 if __name__=='__main__':
     starttime = timeit.default_timer()
