@@ -80,3 +80,5 @@ except Exception as e:
 q = Queries()
 q._create_tmp_latest_scan_ids()
 q._create_tmp_newest_bricklink_prices()
+q._calc_tmp_provider_tbl()
+q._create_new_listings_tbl()

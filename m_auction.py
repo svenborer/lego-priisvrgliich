@@ -32,7 +32,7 @@ if buy_now_deals_filtered:
         body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], d['price'], 'N/A', d['ch_price'], round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
         subject = '[L-PVG-A-SK] {}|{}'.format(d['set_number'], d['title'])
         to = 'borer.sven@gmail.com'
-        send_mail(to, subject, body)
+        # send_mail(to, subject, body)
 
 if buy_now_deals:
     for d in buy_now_deals:
@@ -41,4 +41,4 @@ if buy_now_deals:
             body = mail_body.format(d['title'], d['set_number'], d['theme'], d['subtheme'], d['product_condition'], d['url'], round(d['price'], 2), s['price_treshold'], d['ch_price'], round(d['qty_avg_price'], 2), round(d['save_in_percentage'], 1), d['end_date'])
             subject = '[L-PVG-A-SK] {}|{}'.format(d['set_number'], d['title'])
             to = s['email']
-            send_mail(to, subject, body)
+            # send_mail(to, subject, body)

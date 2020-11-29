@@ -1,6 +1,8 @@
 import timeit
 
 from datetime import datetime, timedelta
+from random import randint
+from collections import Counter
 
 from database import MySQLDatabase
 
@@ -235,7 +237,35 @@ class Queries():
             ) AS MAX USING(set_number, scan_date)
         """
         self._execute_query(query)
-    
+
+    def _create_new_listings_tbl(self):
+        self._execute_query("DELETE FROM tmp_new_listings_tmp")
+        query = """
+        INSERT INTO tmp_new_listings_tmp (id, set_number, title, url, price, currency, provider, availability, scan_date, scan_id)
+            SELECT
+                id, set_number, title, url, price, currency, provider, availability, scan_date, scan_id
+            FROM
+                tbl_provider_scans
+            INNER JOIN(
+                SELECT
+                    set_number,
+                    MIN(scan_date) AS scan_date
+                FROM
+                    tbl_provider_scans
+                GROUP BY
+                    set_number
+            ) AS MAX USING(set_number, scan_date)
+            WHERE
+                scan_date > NOW() - INTERVAL 2 WEEK
+            ORDER BY
+                scan_date
+            DESC
+        """
+        self._execute_query(query)
+        self._execute_query("DELETE FROM tmp_new_listings")
+        self._execute_query("INSERT INTO tmp_new_listings (scan_id) SELECT * FROM tmp_new_listings_tmp")
+
+
     def _create_tmp_latest_scan_ids(self):
         self._execute_query("DELETE FROM tmp_latest_scan_ids_tmp")
         query = """
@@ -260,9 +290,42 @@ class Queries():
         self._execute_query("DELETE FROM tmp_latest_scan_ids")
         self._execute_query("INSERT INTO tmp_latest_scan_ids (scan_id) SELECT scan_id FROM tmp_latest_scan_ids_tmp")
 
+    def _calc_tmp_provider_tbl(self):
+        query = """
+            SELECT * FROM `tbl_provider_scans` WHERE DATEDIFF(NOW(), scan_date) < 5 ORDER BY `scan_date` ASC 
+        """
+        tmp_deals_l7d = self._select_query(query)
+        deals = []
+        for tmp_deal in self._select_query("SELECT * FROM `tbl_provider_scans` JOIN tmp_latest_scan_ids USING(scan_id)"):
+            deal = dict(tmp_deal)
+            price_range = [_['price'] for _ in tmp_deals_l7d if _['provider'] == deal['provider'] and _['set_number'] == deal['set_number']]
+            max_count_price = max(set(price_range), key = price_range.count)
+            price_change_l7d = int(tmp_deal['price']-max_count_price)
+            # print('{} has a price change of {} CHF.'.format(tmp_deal['set_number'], price_change_l7d))
+            deal.update({'price_change_l7d' : price_change_l7d})
+            deals.append(deal)
+        db = MySQLDatabase()
+        self._execute_query("DELETE FROM tmp_deals_tmp")
+        for deal in deals:
+            payload = {
+                'table_name' : 'tmp_deals_tmp',
+                'data' : {
+                    'set_number' : deal['set_number'],
+                    'title' : deal['title'],
+                    'url' : deal['url'],
+                    'price' : deal['price'],
+                    'currency' : deal['currency'],
+                    'provider' : deal['provider'],
+                    'availability' : deal['availability'],
+                    'scan_date' : deal['scan_date'],
+                    'scan_id' : deal['scan_id'],
+                    'price_change_l7d' : deal['price_change_l7d']
+                }
+            }
+            db._insert_query(payload)
+        self._execute_query("DELETE FROM tmp_deals")
+        self._execute_query("INSERT INTO tmp_deals SELECT * FROM tmp_deals_tmp")
+
 if __name__=='__main__':
-    starttime = timeit.default_timer()
     q = Queries()
-    q._create_tmp_latest_scan_ids()
-    q._create_tmp_newest_bricklink_prices()
-    print("Time elapsed :", timeit.default_timer() - starttime)
+    q._calc_tmp_provider_tbl()

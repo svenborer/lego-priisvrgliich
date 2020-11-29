@@ -11,7 +11,7 @@ logging.basicConfig(filename='logs/{}_update_sets.log'.format(datetime.now().str
 db = MySQLDatabase()
 q = Queries()
 
-for year in range((datetime.now().year)-1, (datetime.now().year)+1):
+for year in range((datetime.now().year)-1, (datetime.now().year)+2):
     y = str(year)
     for page in range(1, 10):
         logging.info("Requesting year {} page {} ... ".format(year, page))
