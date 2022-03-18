@@ -26,7 +26,11 @@ class Bricklink():
         while True:
             try:
                 logging.debug("[BLP|{}] Requesting prices ...".format(self.set_number))
-                r = requests.get(self._url, headers=self._headers)
+                r = requests.get("http://www.bricklink.com/catalogPG.asp?S={}-1&viewExclude=Y&ColorID=0".format(self.set_number),
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:85.0) Gecko/20100101 Firefox/85.0"
+                    }
+                )
                 soup = BeautifulSoup(r.content, "html.parser")
                 return soup
             except Exception as e:
@@ -72,10 +76,10 @@ class Bricklink():
         try:
             prices['times_sold'] = table.find('td', text = re.compile('^Times Sold:.*')).find_next('td').text
             prices['total_qty'] = table.find('td', text = re.compile('^Total Qty:.*')).find_next('td').text
-            prices['min_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Min Price:.*')).find_next('td').text)
-            prices['avg_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Avg Price:.*')).find_next('td').text)
-            prices['qty_avg_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Qty Avg Price:.*')).find_next('td').text)
-            prices['max_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Max Price:.*')).find_next('td').text)
+            prices['min_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Min Price:')).find_next('td').text)
+            prices['avg_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Avg Price:')).find_next('td').text)
+            prices['qty_avg_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Qty Avg Price:')).find_next('td').text)
+            prices['max_price'] = self._clean_and_convert_price(table.find('td', text = re.compile('^Max Price:')).find_next('td').text)
         except Exception as e:
             logging.debug("[BLP|PARSE_PRICE_TABLES|{}] {}".format(self.set_number, e))
             return prices
@@ -102,9 +106,9 @@ class Bricklink():
 
     def _clean_and_convert_price(self, price):
         currency = ''.join(re.findall(r'[A-Z]{3}', price))
-        exchangeRate = self._get_currency_exchange_rate(baseCurrency=currency)
+        # exchangeRate = self._get_currency_exchange_rate(baseCurrency=currency)
         price = float(''.join(re.findall(r'[0-9,.]', price)).replace(',', ''))
-        price = round(price*exchangeRate, 2)
+        price = round(price*1.1, 2)
         return price
     
     # TWD not yet supported
@@ -167,6 +171,6 @@ class Bricklink():
 
 if __name__=='__main__':
     logging.basicConfig(format='%(asctime)s:%(levelname)s:%(funcName)s:%(message)s', level=logging.DEBUG)
-    for set_number in ['75918', 70423, 2704]:
+    for set_number in ['7781']:
         bl = Bricklink(set_number)
         print(bl.result)

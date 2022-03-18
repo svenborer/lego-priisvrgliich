@@ -45,7 +45,23 @@ class Queries():
 
     def get_all_running_auctions(self):
         query = "SELECT * FROM tbl_auction_scans WHERE end_date > NOW()"
-        return self._select_query(query)     
+        return self._select_query(query)
+
+    def get_lowest_price_in_history_by_set_number(self, set_number):
+        query = """
+            SELECT *, MIN(price) AS low_price
+            FROM tbl_wanted_history
+            WHERE set_number = %s
+        """
+        return self._select_query(query, (set_number, ))
+
+    def get_all_wanted_sets(self):
+        query = """
+            SELECT *
+            FROM tbl_sets
+            WHERE i_want = 1
+        """
+        return self._select_query(query)
 
     def get_subscriptions(self):
         query = """
@@ -191,6 +207,21 @@ class Queries():
             """
         return self._select_query(query, (set_number, condition, age))
 
+    def get_bricklink_pov_price_for_set(self, set_number, condition='new', age=999):
+        query = """
+            SELECT
+                *
+            FROM
+                tbl_part_out_value
+            WHERE
+                set_number = %s AND
+                DATEDIFF(NOW(), scan_date) < %s
+            ORDER BY
+                scan_date DESC
+            LIMIT 1
+            """
+        return self._select_query(query, (set_number, age))
+
     def get_random_sets(self, limit=100):
         query = """
             SELECT
@@ -238,6 +269,26 @@ class Queries():
         """
         self._execute_query(query)
 
+    def _create_tmp_newest_pov_prices(self):
+        self._execute_query("DELETE FROM tmp_part_out_value")
+        query = """
+        INSERT INTO tmp_part_out_value (set_number, last_6m_average, scan_date)
+            SELECT
+                set_number, last_6m_average, scan_date
+            FROM
+                tbl_part_out_value
+            INNER JOIN(
+                SELECT
+                    set_number,
+                    MAX(scan_date) AS scan_date
+                FROM
+                    tbl_part_out_value
+                GROUP BY
+                    set_number
+            ) AS MAX USING(set_number, scan_date)
+        """
+        self._execute_query(query)
+
     def _create_new_listings_tbl(self):
         self._execute_query("DELETE FROM tmp_new_listings_tmp")
         query = """
@@ -263,7 +314,7 @@ class Queries():
         """
         self._execute_query(query)
         self._execute_query("DELETE FROM tmp_new_listings")
-        self._execute_query("INSERT INTO tmp_new_listings (scan_id) SELECT * FROM tmp_new_listings_tmp")
+        self._execute_query("INSERT INTO tmp_new_listings SELECT * FROM tmp_new_listings_tmp")
 
 
     def _create_tmp_latest_scan_ids(self):
@@ -272,19 +323,22 @@ class Queries():
         INSERT INTO tmp_latest_scan_ids_tmp (scan_id)
             SELECT
                 scan_id
-            FROM (
+            FROM
+                (
                 SELECT
                     *
                 FROM
                     tbl_provider_scans
+                WHERE
+                    DATEDIFF(NOW(), scan_date) < 2
                 GROUP BY
                     provider, scan_id
                 ORDER BY
                     scan_date
                 DESC
-            ) AS t
-            GROUP BY
-                provider
+                    ) AS t
+                GROUP BY
+                    provider
         """
         self._execute_query(query)
         self._execute_query("DELETE FROM tmp_latest_scan_ids")
@@ -299,6 +353,7 @@ class Queries():
         for tmp_deal in self._select_query("SELECT * FROM `tbl_provider_scans` JOIN tmp_latest_scan_ids USING(scan_id)"):
             deal = dict(tmp_deal)
             price_range = [_['price'] for _ in tmp_deals_l7d if _['provider'] == deal['provider'] and _['set_number'] == deal['set_number']]
+            print(tmp_deal)
             max_count_price = max(set(price_range), key = price_range.count)
             price_change_l7d = int(tmp_deal['price']-max_count_price)
             # print('{} has a price change of {} CHF.'.format(tmp_deal['set_number'], price_change_l7d))

@@ -14,12 +14,12 @@ def send_error_mail(provider, errormsg):
     to = _config['notification']['email']
     send_mail(to, subject, body)
 
-try:
-    s = Smyth()
-    s.init_scan()
-except Exception as e:
-    logging.error("[SMYTH] Problems scanning, Err: {} ...".format(e))
-    send_error_mail('SMYTH', e)
+# try:
+#     s = Smyth()
+#     s.init_scan()
+# except Exception as e:
+#     logging.error("[SMYTH] Problems scanning, Err: {} ...".format(e))
+#     send_error_mail('SMYTH', e)
 
 try:
     g = Galaxus()
@@ -80,5 +80,6 @@ except Exception as e:
 q = Queries()
 q._create_tmp_latest_scan_ids()
 q._create_tmp_newest_bricklink_prices()
+q._create_tmp_newest_pov_prices()
 q._calc_tmp_provider_tbl()
 q._create_new_listings_tbl()

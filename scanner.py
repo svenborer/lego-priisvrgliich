@@ -2,6 +2,7 @@ import random
 import string
 import logging
 import requests
+import time
 import re
 
 from bs4 import BeautifulSoup
@@ -40,6 +41,7 @@ class BaseScanner():
                     return r.json()
             except Exception as e:
                 logging.warning("Problems requesting {}. Retry ({}/{}); Err: {} ...".format(url, i, total_retries, e))
+                time.sleep(10)
         logging.error("Requesting {} failed ...".format(url))
         return
 

@@ -18,7 +18,7 @@ ps = ProductScanner()
 
 set_number = 0
 
-eol_url = 'https://www.stonewars.de/news/lego-end-of-life-eol-2020/'
+eol_url = 'https://www.stonewars.de/news/lego-eol-end-of-life-2021/'
 
 soup = ps._get_soup(eol_url, headers={})
 eol_sets_raw = [_get_set_numbers_from_string(_.text) for _ in soup.find_all('td', {'class' : 'column-2'})]
